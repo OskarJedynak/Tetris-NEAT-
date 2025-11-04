@@ -7,6 +7,8 @@ class Colors:
     five = (180, 180, 180)
     six = (165, 165, 165)
     seven = (150, 150, 150)
+    white = (255, 255, 255)
+    backg_color = (22, 22, 22)
 
     @classmethod
     def get_cell_colors(cls):
