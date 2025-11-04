@@ -54,14 +54,22 @@ class Game:
     def lock_block(self):
         tiles = self.current_block.get_cell_pos()
         for position in tiles:
-            self.grid.grid[position.row][position.column] = self.current_block.id
+            # sprawdź, czy pozycja mieści się w siatce
+            if 0 <= position.row < self.grid.num_rows and 0 <= position.column < self.grid.num_cols:
+                self.grid.grid[position.row][position.column] = self.current_block.id
+            else:
+                # jeśli klocek jest poza planszą — gra kończy się
+                self.game_over = True
+                return
+
         self.current_block = self.next_block
         self.next_block = self.get_random_block()
+
         rows_cleared = self.grid.clear_full_rows()
         self.update_score(rows_cleared)
+
         if self.block_fits() == False:
             self.game_over = True
-
 
     def move_left(self):
         self.current_block.move(0, -1)
@@ -76,7 +84,7 @@ class Game:
     def block_inside(self):
         tiles = self.current_block.get_cell_pos()
         for tile in tiles:
-            if self.grid.is_inside(tile.row, tile.column) == False:
+            if not (0 <= tile.row < self.grid.num_rows and 0 <= tile.column < self.grid.num_cols):
                 return False
         return True
 
