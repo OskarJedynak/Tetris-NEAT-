@@ -5,11 +5,9 @@ from game import Game
 from colors import Colors
 
 
-# AI Agent that plays Tetris using heuristic weights
 class TetrisAI:
     def __init__(self, weights=None):
         if weights is None:
-            # Random initial weights
             self.weights = {
                 'height': random.uniform(-1, 0),
                 'holes': random.uniform(-1, 0),
@@ -22,10 +20,8 @@ class TetrisAI:
         self.games_played = 0
 
     def evaluate_board(self, game):
-        """Evaluate current board state using heuristics"""
         grid = game.grid.grid
 
-        # Calculate aggregate height
         heights = []
         for col in range(game.grid.num_cols):
             for row in range(game.grid.num_rows):
@@ -37,7 +33,6 @@ class TetrisAI:
 
         aggregate_height = sum(heights)
 
-        # Calculate holes (empty cells with filled cells above)
         holes = 0
         for col in range(game.grid.num_cols):
             block_found = False
@@ -47,13 +42,11 @@ class TetrisAI:
                 elif block_found and grid[row][col] == 0:
                     holes += 1
 
-        # Calculate bumpiness (height differences between adjacent columns)
         bumpiness = 0
         for i in range(len(heights) - 1):
             bumpiness += abs(heights[i] - heights[i + 1])
 
-        # Lines cleared is tracked separately in game
-        lines_cleared = game.score / 10  # Rough estimate
+        lines_cleared = game.score / 10
 
         score = (self.weights['height'] * aggregate_height +
                  self.weights['holes'] * holes +
@@ -63,23 +56,18 @@ class TetrisAI:
         return score
 
     def get_best_move(self, game):
-        """Try all possible moves and return the best one"""
         best_score = float('-inf')
         best_move = {'rotation': 0, 'column': 0}
 
         original_state = self.save_game_state(game)
 
-        # Try all rotations
         for rotation in range(4):
-            # Try all columns
             for col in range(-2, game.grid.num_cols + 2):
                 test_game = self.restore_game_state(game, original_state)
 
-                # Apply rotation
                 for _ in range(rotation):
                     test_game.current_block.rotate()
 
-                # Move to column
                 current_col = test_game.current_block.column_offset
                 moves = col - current_col
 
@@ -90,11 +78,9 @@ class TetrisAI:
                     for _ in range(abs(moves)):
                         test_game.move_left()
 
-                # Check if position is valid before dropping
                 if not test_game.block_inside():
                     continue
 
-                # Drop the piece
                 drop_count = 0
                 while not test_game.game_over and drop_count < 25:
                     test_game.move_down()
@@ -111,7 +97,6 @@ class TetrisAI:
         return best_move
 
     def save_game_state(self, game):
-        """Save current game state"""
         return {
             'grid': copy.deepcopy(game.grid.grid),
             'current_block': copy.deepcopy(game.current_block),
@@ -119,7 +104,6 @@ class TetrisAI:
         }
 
     def restore_game_state(self, game, state):
-        """Restore game to saved state"""
         new_game = Game()
         new_game.grid.grid = copy.deepcopy(state['grid'])
         new_game.current_block = copy.deepcopy(state['current_block'])
@@ -127,7 +111,6 @@ class TetrisAI:
         return new_game
 
 
-# Genetic Algorithm
 class GeneticAlgorithm:
     def __init__(self, population_size=20):
         self.population_size = population_size
@@ -137,20 +120,15 @@ class GeneticAlgorithm:
         self.best_ai = None
 
     def evolve(self):
-        """Evolve to next generation"""
-        # Sort by fitness
         self.population.sort(key=lambda x: x.fitness, reverse=True)
 
-        # Track best
         if self.population[0].fitness > self.best_fitness:
             self.best_fitness = self.population[0].fitness
             self.best_ai = copy.deepcopy(self.population[0])
 
-        # Keep top 20%
         elite_size = self.population_size // 5
         new_population = self.population[:elite_size]
 
-        # Breed rest
         while len(new_population) < self.population_size:
             parent1 = self.select_parent()
             parent2 = self.select_parent()
@@ -161,19 +139,16 @@ class GeneticAlgorithm:
         self.population = new_population
         self.generation += 1
 
-        # Reset fitness
         for ai in self.population:
             ai.fitness = 0
             ai.games_played = 0
 
     def select_parent(self):
-        """Tournament selection"""
         tournament_size = 3
         tournament = random.sample(self.population, tournament_size)
         return max(tournament, key=lambda x: x.fitness)
 
     def crossover(self, parent1, parent2):
-        """Create child from two parents"""
         child_weights = {}
         for key in parent1.weights:
             if random.random() < 0.5:
@@ -183,18 +158,15 @@ class GeneticAlgorithm:
         return TetrisAI(child_weights)
 
     def mutate(self, ai, mutation_rate=0.1):
-        """Randomly mutate weights"""
         for key in ai.weights:
             if random.random() < mutation_rate:
                 ai.weights[key] += random.uniform(-0.2, 0.2)
         return ai
 
 
-# Main training loop
 def main():
     pygame.init()
 
-    # Screen setup
     screen = pygame.display.set_mode((800, 650))
     pygame.display.set_caption("Tetris AI - Genetic Learning")
 
@@ -203,13 +175,11 @@ def main():
 
     clock = pygame.time.Clock()
 
-    # Initialize
     ga = GeneticAlgorithm(population_size=20)
     current_ai_index = 0
     game = Game()
 
-    # Training mode - run fast by default
-    speed = 50  # Games per frame - much faster!
+    speed = 50  # Games per frame
     show_visualization = True
 
     games_per_generation = 3
@@ -223,15 +193,12 @@ def main():
                 if event.key == pygame.K_v:
                     show_visualization = not show_visualization
 
-        # Training - always running
         for _ in range(speed):
             if game.game_over:
-                # Record fitness
                 current_ai = ga.population[current_ai_index]
                 current_ai.fitness += game.score
                 current_ai.games_played += 1
 
-                # Move to next AI or next generation
                 if current_ai.games_played >= games_per_generation:
                     current_ai_index += 1
 
@@ -239,14 +206,11 @@ def main():
                         ga.evolve()
                         current_ai_index = 0
 
-                # Reset game
                 game = Game()
 
-            # AI makes move
             current_ai = ga.population[current_ai_index]
             move = current_ai.get_best_move(game)
 
-            # Apply move
             for _ in range(move['rotation']):
                 game.rotate()
 
@@ -260,16 +224,13 @@ def main():
                 for _ in range(current_col - target_col):
                     game.move_left()
 
-            # Drop
             game.move_down()
 
-        # Drawing
         screen.fill(Colors.backg_color)
 
         if show_visualization:
             game.draw(screen)
 
-        # Stats
         current_ai = ga.population[current_ai_index]
 
         stats = [
@@ -289,7 +250,6 @@ def main():
                 screen.blit(text, (520, y))
             y += 25
 
-        # Best weights display
         if ga.best_ai:
             y = 350
             title = small_font.render("Best Weights:", True, Colors.white)
